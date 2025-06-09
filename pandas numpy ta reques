@@ -1,0 +1,85 @@
+import pandas as pd
+import numpy as np
+import random
+import time
+
+# Simulated broker balance
+account_balance = 1000.0
+risk_percent = 0.10  # 10% per trade
+
+def fetch_price_data():
+    # Simulate fetching OHLC data
+    data = {
+        "time": pd.date_range(end=pd.Timestamp.now(), periods=100, freq='1min'),
+        "open": np.random.uniform(2300, 2400, 100),
+        "high": np.random.uniform(2300, 2400, 100),
+        "low": np.random.uniform(2300, 2400, 100),
+        "close": np.random.uniform(2300, 2400, 100)
+    }
+    df = pd.DataFrame(data)
+    return df
+
+def detect_engulfing(df):
+    # Simple engulfing detection (bullish only for now)
+    prev = df.iloc[-2]
+    curr = df.iloc[-1]
+    return curr['close'] > prev['open'] and curr['open'] < prev['close']
+
+def detect_supply_demand(df):
+    # Dummy: Use rolling min/max to simulate zones
+    demand_zone = df['low'].rolling(window=10).min().iloc[-1]
+    supply_zone = df['high'].rolling(window=10).max().iloc[-1]
+    return demand_zone, supply_zone
+
+def awesome_oscillator(df):
+    median_price = (df['high'] + df['low']) / 2
+    ao = median_price.rolling(5).mean() - median_price.rolling(34).mean()
+    return ao
+
+def detect_divergence(ao):
+    # Simulate divergence signal
+    return random.choice([True, False])
+
+def quasimodo_pattern(df):
+    # Dummy check: simulate 10% chance
+    return random.random() < 0.1
+
+def moving_average_signal(df):
+    short_ma = df['close'].rolling(window=5).mean()
+    long_ma = df['close'].rolling(window=20).mean()
+    return short_ma.iloc[-1] > long_ma.iloc[-1]
+
+def confirm_trade(df):
+    if detect_engulfing(df) and detect_divergence(awesome_oscillator(df)) and quasimodo_pattern(df):
+        return True
+    return False
+
+def execute_trade(price, direction):
+    global account_balance
+    risk_amount = account_balance * risk_percent
+    stop_loss_pips = 10
+    pip_value = 0.1  # Simulated
+    lot_size = risk_amount / (stop_loss_pips * pip_value)
+    print(f"[TRADE] {direction.upper()} at {price:.2f} | Lot size: {lot_size:.2f}")
+    account_balance += random.uniform(-risk_amount, risk_amount)  # Simulated PnL
+    print(f"[BALANCE] Updated account balance: {account_balance:.2f}")
+
+def main():
+    while True:
+        df = fetch_price_data()
+        demand_zone, supply_zone = detect_supply_demand(df)
+        price = df['close'].iloc[-1]
+
+        print(f"\n[INFO] Price: {price:.2f}, Demand: {demand_zone:.2f}, Supply: {supply_zone:.2f}")
+
+        if price <= demand_zone and confirm_trade(df) and moving_average_signal(df):
+            execute_trade(price, 'buy')
+        elif price >= supply_zone and confirm_trade(df) and not moving_average_signal(df):
+            execute_trade(price, 'sell')
+        else:
+            print("[WAIT] No valid trade signal.")
+
+        time.sleep(60)  # Run every minute
+
+if __name__ == "__main__":
+    main()
